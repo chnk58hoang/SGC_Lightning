@@ -70,3 +70,5 @@ def get_model(model_opt, nfeat, nclass, nhid=0, dropout=0, cuda=True):
 
     if cuda: model.cuda()
     return model
+
+

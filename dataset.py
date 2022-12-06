@@ -1,6 +1,4 @@
-import torch.cuda
 from torch.utils.data import Dataset
-
 
 
 class CustomDataset(Dataset):
@@ -12,5 +10,4 @@ class CustomDataset(Dataset):
         return self.feature_tensor.size(0)
 
     def __getitem__(self, idx):
-
         return self.feature_tensor[idx], int(self.label_tensor[idx])

@@ -1,6 +1,7 @@
 import argparse
 import torch
 
+
 def get_citation_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -25,8 +26,8 @@ def get_citation_args():
                         choices=['mul', 'cat', 'adj'],
                         help='feature-type')
     parser.add_argument('--normalization', type=str, default='AugNormAdj',
-                       choices=['AugNormAdj'],
-                       help='Normalization method for the adjacency matrix.')
+                        choices=['AugNormAdj'],
+                        help='Normalization method for the adjacency matrix.')
     parser.add_argument('--degree', type=int, default=2,
                         help='degree of the approximation.')
     parser.add_argument('--per', type=int, default=-1,
@@ -34,7 +35,9 @@ def get_citation_args():
     parser.add_argument('--experiment', type=str, default="base-experiment",
                         help='feature-type')
     parser.add_argument('--tuned', action='store_true', help='use tuned hyperparams')
-
+    parser.add_argument('--implement', type=str, default="pytorch-lightning",
+                        choices=["pytorch", "pytorch-lightning"],
+                        help='model to use.')
     args, _ = parser.parse_known_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
