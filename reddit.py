@@ -59,7 +59,6 @@ class SGC_Lightning(pl.LightningModule):
         return self.test_loader
 
     def configure_optimizers(self):
-        # optimizer = optim.Adam(self.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         optimizer = optim.LBFGS(self.parameters(), lr=args.lr)
         return optimizer
 

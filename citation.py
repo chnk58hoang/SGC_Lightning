@@ -18,12 +18,9 @@ from utils import load_citation, sgc_precompute, set_seed
 args = get_citation_args()
 
 if args.tuned:
-    if args.model == "SGC":
-        with open("{}-tuning/{}.txt".format(args.model, args.dataset), 'rb') as f:
-            args.weight_decay = pkl.load(f)['weight_decay']
-            print("using tuned weight decay: {}".format(args.weight_decay))
-    else:
-        raise NotImplemented
+    with open("{}-tuning/{}.txt".format(args.model, args.dataset), 'rb') as f:
+        args.weight_decay = pkl.load(f)['weight_decay']
+        print("using tuned weight decay: {}".format(args.weight_decay))
 
 if args.implement == "pytorch-lightning":
     pl.seed_everything(args.seed)
@@ -32,9 +29,8 @@ else:
     set_seed(args.seed, args.cuda)
 
 adj, features, labels, idx_train, idx_val, idx_test = load_citation(args.dataset, args.normalization, args.cuda)
-model = get_model(args.model, features.size(1), labels.max().item() + 1, args.hidden, args.dropout, args.cuda)
-if args.model == "SGC": 
-    features, precompute_time = sgc_precompute(features, adj, args.degree)
+model = get_model("SGC", features.size(1), labels.max().item() + 1, args.hidden, args.dropout, args.cuda)
+features, precompute_time = sgc_precompute(features, adj, args.degree)
 print("{:.4f}s".format(precompute_time))
 
 
@@ -89,7 +85,7 @@ class SGC_Lightning(pl.LightningModule):
         train_features, train_labels = train_batch
         output = self.forward(train_features)
         loss_train = self.cross_entropy_loss(output, train_labels)
-        self.log("acc_val", loss_train)
+        self.log("loss_train", loss_train)
         return loss_train
 
     def validation_step(self, val_batch, batch_idx):
@@ -115,28 +111,27 @@ class SGC_Lightning(pl.LightningModule):
         return optimizer
 
 
-if args.model == "SGC":
-    if args.implement == "pytorch-lightning":
+if args.implement == "pytorch-lightning":
 
-        train_dataset = CustomDataset(feature_tensor=features[idx_train], label_tensor=labels[idx_train])
-        train_loader = DataLoader(dataset=train_dataset, batch_size=140)
+    train_dataset = CustomDataset(feature_tensor=features[idx_train], label_tensor=labels[idx_train])
+    train_loader = DataLoader(dataset=train_dataset, batch_size=140)
 
-        test_dataset = CustomDataset(feature_tensor=features[idx_test], label_tensor=labels[idx_test])
-        test_loader = DataLoader(dataset=test_dataset, batch_size=1000, shuffle=False)
+    test_dataset = CustomDataset(feature_tensor=features[idx_test], label_tensor=labels[idx_test])
+    test_loader = DataLoader(dataset=test_dataset, batch_size=1000, shuffle=False)
 
-        module = SGC_Lightning(nfeat=features.size(1), nclass=labels.max().item() + 1, train_loader=train_loader,
-                               test_loader=test_loader)
-        trainer = pl.Trainer(max_epochs=100)
-        start_time = perf_counter()
-        trainer.fit(module)
-        train_time = perf_counter() - start_time
-        trainer.test(module, test_loader)
-        print(f'Training_time:{train_time}')
-    else:
-        model, acc_val, train_time = train_regression(model, features[idx_train], labels[idx_train], features[idx_val],
-                                                      labels[idx_val],
-                                                      args.epochs, args.weight_decay, args.lr, args.dropout)
-        acc_test = test_regression(model, features[idx_test], labels[idx_test])
-        print("Validation Accuracy: {:.4f} Test Accuracy: {:.4f}".format(acc_val, acc_test))
-        print("Pre-compute time: {:.4f}s, train time: {:.4f}s, total: {:.4f}s".format(precompute_time, train_time,
-                                                                                      precompute_time + train_time))
+    module = SGC_Lightning(nfeat=features.size(1), nclass=labels.max().item() + 1, train_loader=train_loader,
+                            test_loader=test_loader)
+    trainer = pl.Trainer(max_epochs=100)
+    start_time = perf_counter()
+    trainer.fit(module)
+    train_time = perf_counter() - start_time
+    trainer.test(module, test_loader)
+    print(f'Training_time:{train_time}')
+else:
+    model, acc_val, train_time = train_regression(model, features[idx_train], labels[idx_train], features[idx_val],
+                                                    labels[idx_val],
+                                                    args.epochs, args.weight_decay, args.lr, args.dropout)
+    acc_test = test_regression(model, features[idx_test], labels[idx_test])
+    print("Validation Accuracy: {:.4f} Test Accuracy: {:.4f}".format(acc_val, acc_test))
+    print("Pre-compute time: {:.4f}s, train time: {:.4f}s, total: {:.4f}s".format(precompute_time, train_time,
+                                                                                    precompute_time + train_time))
