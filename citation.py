@@ -18,7 +18,7 @@ from utils import load_citation, sgc_precompute, set_seed
 args = get_citation_args()
 
 if args.tuned:
-    with open("{}-tuning/{}.txt".format(args.model, args.dataset), 'rb') as f:
+    with open("{}-tuning/{}.txt".format("SGC", args.dataset), 'rb') as f:
         args.weight_decay = pkl.load(f)['weight_decay']
         print("using tuned weight decay: {}".format(args.weight_decay))
 

@@ -20,7 +20,7 @@ if args.dataset == "mr": nclass = 1
 else: nclass = label_dict["train"].max().item()+1
 
 def linear_objective(space):
-    model = get_model(args.model, nfeat=feat_dict["train"].size(1),
+    model = get_model("SGC", nfeat=feat_dict["train"].size(1),
                       nclass=nclass,
                       nhid=0, dropout=0, cuda=args.cuda)
     val_acc, _, _ = train_linear(model, feat_dict, space['weight_decay'], args.dataset=="mr")
