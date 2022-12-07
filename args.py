@@ -41,3 +41,33 @@ def get_citation_args():
     args, _ = parser.parse_known_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
+
+
+def get_reddit_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--lr', type=float, default=1,
+                        help='Initial learning rate.')
+    parser.add_argument('--no-cuda', action='store_true', default=False,
+                        help='Disables CUDA training.')
+    parser.add_argument('--inductive', action='store_true', default=False,
+                        help='inductive training.')
+    parser.add_argument('--test', action='store_true', default=True,
+                        help='inductive training.')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed.')
+    parser.add_argument('--epochs', type=int, default=2,
+                        help='Number of epochs to train.')
+    parser.add_argument('--weight_decay', type=float, default=0,
+                        help='Weight decay (L2 loss on parameters).')
+    parser.add_argument('--normalization', type=str, default='AugNormAdj',
+                        choices=['NormLap', 'Lap', 'RWalkLap', 'FirstOrderGCN',
+                                'AugNormAdj', 'NormAdj', 'RWalk', 'AugRWalk', 'NoNorm'],
+                        help='Normalization method for the adjacency matrix.')
+    parser.add_argument('--degree', type=int, default=2,
+                        help='degree of the approximation.')
+    parser.add_argument('--implement', type=str, default="pytorch-lightning",
+                        choices=["pytorch", "pytorch-lightning"],
+                        help='model to use.')
+
+    args = parser.parse_args()
+    args.cuda = not args.no_cuda and torch.cuda.is_available()
+    return args

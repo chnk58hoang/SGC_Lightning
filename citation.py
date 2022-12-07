@@ -12,7 +12,7 @@ from dataset import CustomDataset
 from metrics import accuracy
 from models import SGC
 from models import get_model
-from utils import load_citation, sgc_precompute
+from utils import load_citation, sgc_precompute, set_seed
 
 # Arguments
 args = get_citation_args()
@@ -29,10 +29,12 @@ if args.implement == "pytorch-lightning":
     pl.seed_everything(args.seed)
 else:
     pl.seed_everything(args.seed)
+    set_seed(args.seed, args.cuda)
 
 adj, features, labels, idx_train, idx_val, idx_test = load_citation(args.dataset, args.normalization, args.cuda)
 model = get_model(args.model, features.size(1), labels.max().item() + 1, args.hidden, args.dropout, args.cuda)
-if args.model == "SGC": features, precompute_time = sgc_precompute(features, adj, args.degree)
+if args.model == "SGC": 
+    features, precompute_time = sgc_precompute(features, adj, args.degree)
 print("{:.4f}s".format(precompute_time))
 
 
