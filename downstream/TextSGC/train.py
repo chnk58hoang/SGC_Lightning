@@ -1,34 +1,63 @@
-import time
-import argparse
-import numpy as np
-import pickle
 import os
-from copy import deepcopy
+import time
+import pickle as pkl
+from args import parse_args
+from functools import partial
+
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import tabulate
-from functools import partial
-from utils import *
+import pytorch_lightning as pl
+
+import utils
 from models import SGC
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default='20ng', help='Dataset string.')
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='Disables CUDA training.')
-parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=3,
-                    help='Number of epochs to train.')
-parser.add_argument('--batch_size', type=int, default=128,
-                    help='training batch size.')
-parser.add_argument('--weight_decay', type=float, default=0,
-                    help='Weight for L2 loss on embedding matrix.')
-parser.add_argument('--degree', type=int, default=2,
-                    help='degree of the approximation.')
-parser.add_argument('--tuned', action='store_true', help='use tuned hyperparams')
-parser.add_argument('--preprocessed', action='store_true',
-                    help='use preprocessed data')
-args = parser.parse_args()
+
+class SGC_Lightning(pl.LightningModule):
+    """
+    A Simple PyTorch Implementation of Logistic Regression.
+    Assuming the features have been preprocessed with k-step graph propagation.
+    """
+
+    def __init__(self, nfeat, nclass, train_loader, test_loader):
+        super(SGC_Lightning, self).__init__()
+        self.model = SGC(nfeat, nclass)
+        self.train_loader = train_loader
+        self.test_loader = test_loader
+
+    def forward(self, x):
+        return self.model(x)
+
+    def cross_entropy_loss(self, output, train_labels):
+        return F.cross_entropy(output, train_labels)
+
+    def training_step(self, train_batch, batch_idx):
+        train_features, train_labels = train_batch
+        output = self.forward(train_features)
+        loss_train = self.cross_entropy_loss(output, train_labels)
+        self.log("loss_train", loss_train)
+        return loss_train
+
+    def validation_step(self, val_batch, batch_idx):
+        train_features, val_labels = val_batch
+        output = self.forward(train_features)
+
+    def test_step(self, test_batch, test_idx):
+        test_feature, test_label = test_batch
+        output = self.forward(test_feature)
+
+    def train_dataloader(self):
+        return self.train_loader
+
+    def test_dataloader(self):
+        return self.test_loader
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        return optimizer
+
+
+args = parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 args.device = 'cuda' if args.cuda else 'cpu'
 if args.tuned:
@@ -36,9 +65,9 @@ if args.tuned:
         args.weight_decay = float(f.read())
 
 torch.backends.cudnn.benchmark = True
-set_seed(args.seed, args.cuda)
+utils.set_seed(args.seed, args.cuda)
 
-sp_adj, index_dict, label_dict = load_corpus(args.dataset)
+sp_adj, index_dict, label_dict = utils.load_corpus(args.dataset)
 for k, v in label_dict.items():
     if args.dataset == "mr":
         label_dict[k] = torch.Tensor(v).to(args.device)
@@ -46,7 +75,7 @@ for k, v in label_dict.items():
         label_dict[k] = torch.LongTensor(v).to(args.device)
 features = torch.arange(sp_adj.shape[0]).to(args.device)
 
-adj = sparse_to_torch_sparse(sp_adj, device=args.device)
+adj = utils.sparse_to_torch_sparse(sp_adj, device=args.device)
 
 
 def train_linear(model, feat_dict, weight_decay, binary=False):
@@ -72,7 +101,7 @@ def train_linear(model, feat_dict, weight_decay, binary=False):
 
         optimizer.step(closure)
 
-    train_time = time.perf_counter()-start
+    train_time = time.perf_counter() - start
     val_res = eval_linear(model, feat_dict["val"].cuda(),
                           label_dict["val"].cuda(), binary)
     return val_res['accuracy'], model, train_time
@@ -98,12 +127,14 @@ def eval_linear(model, features, label, binary=False):
         'loss': loss.item(),
         'accuracy': acc
     }
+
+
 if __name__ == '__main__':
     if args.dataset == "mr": nclass = 1
     else: nclass = label_dict["train"].max().item()+1
     if not args.preprocessed:
-        adj_dense = sparse_to_torch_dense(sp_adj, device='cpu')
-        feat_dict, precompute_time = sgc_precompute(adj, adj_dense, args.degree-1, index_dict)
+        adj_dense = utils.sparse_to_torch_dense(sp_adj, device='cpu')
+        feat_dict, precompute_time = utils.sgc_precompute(adj, adj_dense, args.degree-1, index_dict)
     else:
         # load the relased degree 2 features
         with open(os.path.join("preprocessed",
@@ -111,8 +142,7 @@ if __name__ == '__main__':
             feat_dict =  pkl.load(prep)
         precompute_time = 0
 
-    model = SGC(nfeat=feat_dict["train"].size(1),
-                nclass=nclass)
+    model = SGC(nfeat=feat_dict["train"].size(1), nclass=nclass)
     if args.cuda: model.cuda()
     val_acc, best_model, train_time = train_linear(model, feat_dict, args.weight_decay, args.dataset=="mr")
     test_res = eval_linear(best_model, feat_dict["test"].cuda(),

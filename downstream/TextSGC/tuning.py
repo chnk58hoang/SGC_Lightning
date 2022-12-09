@@ -1,11 +1,6 @@
-import time
-import argparse
-import numpy as np
-from train import train
-import pickle as pkl
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
 from args import get_text_args
-from utils import *
+from utils import set_seed, sparse_to_torch_dense, sgc_precompute
 from train import train_linear, adj, sp_adj, label_dict, index_dict
 import torch.nn.functional as F
 from models import get_model
@@ -16,8 +11,7 @@ set_seed(args.seed, args.cuda)
 
 adj_dense = sparse_to_torch_dense(sp_adj, device='cpu')
 feat_dict, precompute_time = sgc_precompute(adj, adj_dense, args.degree-1, index_dict)
-if args.dataset == "mr": nclass = 1
-else: nclass = label_dict["train"].max().item()+1
+nclass = label_dict["train"].max().item() + 1 if args.dataset != "mr" else 1
 
 def linear_objective(space):
     model = get_model("SGC", nfeat=feat_dict["train"].size(1),

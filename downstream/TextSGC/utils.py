@@ -1,13 +1,12 @@
 import numpy as np
 import pickle as pkl
-import networkx as nx
 import scipy.sparse as sp
-from scipy.sparse.linalg.eigen.arpack import eigsh
 import sys
 import re
 import torch
 from time import perf_counter
 import tabulate
+
 
 def parse_index_file(filename):
     """Parse index file."""
@@ -15,6 +14,7 @@ def parse_index_file(filename):
     for line in open(filename):
         index.append(int(line.strip()))
     return index
+
 
 def load_corpus(dataset_str):
     """
@@ -56,6 +56,7 @@ def load_corpus(dataset_str):
 
     return adj, index_dict, label_dict
 
+
 def normalize_adj(adj):
     """Symmetrically normalize adjacency matrix."""
     adj = sp.coo_matrix(adj)
@@ -65,10 +66,12 @@ def normalize_adj(adj):
     d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
     return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).transpose().tocoo()
 
+
 def preprocess_adj(adj):
     """Preprocessing of adjacency matrix for simple GCN model and conversion to tuple representation."""
     adj_normalized = normalize_adj(adj + sp.eye(adj.shape[0]))
     return adj_normalized
+
 
 def loadWord2Vec(filename):
     """Read Word Vectors"""
@@ -90,6 +93,7 @@ def loadWord2Vec(filename):
     file.close()
     return vocab, embd, word_vector_map
 
+
 def clean_str(string):
     string = re.sub(r'[?|$|.|!]',r'',string)
     string = re.sub(r'[^a-zA-Z0-9 ]',r'',string)
@@ -107,6 +111,7 @@ def clean_str(string):
     string = re.sub(r"\s{2,}", " ", string)
     return string.strip().lower()
 
+
 def sparse_to_torch_sparse(sparse_mx, device='cuda'):
     """Convert a scipy sparse matrix to a torch sparse tensor."""
     sparse_mx = sparse_mx.tocoo().astype(np.float32)
@@ -123,10 +128,12 @@ def sparse_to_torch_sparse(sparse_mx, device='cuda'):
         adj = torch.sparse.FloatTensor(indices, values, shape)
     return adj
 
+
 def sparse_to_torch_dense(sparse, device='cuda'):
     dense = sparse.todense().astype(np.float32)
     torch_dense = torch.from_numpy(dense).to(device=device)
     return torch_dense
+
 
 def sgc_precompute(adj, features, degree, index_dict):
     assert degree==1, "Only supporting degree 2 now"
@@ -151,10 +158,12 @@ def sgc_precompute(adj, features, degree, index_dict):
     precompute_time = perf_counter()-start
     return feat_dict, precompute_time
 
+
 def set_seed(seed, cuda):
     np.random.seed(seed)
     torch.manual_seed(seed)
     if cuda: torch.cuda.manual_seed(seed)
+
 
 def print_table(values, columns, epoch):
     table = tabulate.tabulate([values], columns, tablefmt='simple', floatfmt='8.4f')

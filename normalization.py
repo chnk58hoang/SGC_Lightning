@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-import torch
+
 
 def aug_normalized_adjacency(adj):
    adj = adj + sp.eye(adj.shape[0])
@@ -11,12 +11,14 @@ def aug_normalized_adjacency(adj):
    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
    return d_mat_inv_sqrt.dot(adj).dot(d_mat_inv_sqrt).tocoo()
 
+
 def fetch_normalization(type):
    switcher = {
        'AugNormAdj': aug_normalized_adjacency,  # A' = (D + I)^-1/2 * ( A + I ) * (D + I)^-1/2
    }
    func = switcher.get(type, lambda: "Invalid normalization technique.")
    return func
+
 
 def row_normalize(mx):
     """Row-normalize sparse matrix"""

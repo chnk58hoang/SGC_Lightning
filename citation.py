@@ -14,31 +14,18 @@ from models import SGC
 from models import get_model
 from utils import load_citation, sgc_precompute, set_seed
 
-# Arguments
-args = get_citation_args()
 
-if args.tuned:
-    with open("{}-tuning/{}.txt".format("SGC", args.dataset), 'rb') as f:
-        args.weight_decay = pkl.load(f)['weight_decay']
-        print("using tuned weight decay: {}".format(args.weight_decay))
-
-if args.implement == "pytorch-lightning":
-    pl.seed_everything(args.seed)
-else:
-    pl.seed_everything(args.seed)
-    set_seed(args.seed, args.cuda)
-
-adj, features, labels, idx_train, idx_val, idx_test = load_citation(args.dataset, args.normalization, args.cuda)
-model = get_model("SGC", features.size(1), labels.max().item() + 1, args.hidden, args.dropout, args.cuda)
-features, precompute_time = sgc_precompute(features, adj, args.degree)
-print("{:.4f}s".format(precompute_time))
-
-
-def train_regression(model,
-                     train_features, train_labels,
-                     val_features, val_labels,
-                     epochs=args.epochs, weight_decay=args.weight_decay,
-                     lr=args.lr, dropout=args.dropout):
+def train_regression(
+    model,
+    train_features, 
+    train_labels,
+    val_features, 
+    val_labels,
+    epochs=100, 
+    weight_decay=5e-6,
+    lr=0.02, 
+    dropout=0.0
+):
     optimizer = optim.Adam(model.parameters(), lr=lr,
                            weight_decay=weight_decay)
 
@@ -111,27 +98,54 @@ class SGC_Lightning(pl.LightningModule):
         return optimizer
 
 
-if args.implement == "pytorch-lightning":
+if __name__ == "__main__":
+    # Arguments
+    args = get_citation_args()
 
-    train_dataset = CustomDataset(feature_tensor=features[idx_train], label_tensor=labels[idx_train])
-    train_loader = DataLoader(dataset=train_dataset, batch_size=140)
+    if args.tuned:
+        with open("{}-tuning/{}.txt".format("SGC", args.dataset), 'rb') as f:
+            args.weight_decay = pkl.load(f)['weight_decay']
+            print("using tuned weight decay: {}".format(args.weight_decay))
 
-    test_dataset = CustomDataset(feature_tensor=features[idx_test], label_tensor=labels[idx_test])
-    test_loader = DataLoader(dataset=test_dataset, batch_size=1000, shuffle=False)
+    if args.implement == "pytorch-lightning":
+        pl.seed_everything(args.seed)
+    else:
+        pl.seed_everything(args.seed)
+        set_seed(args.seed, args.cuda)
 
-    module = SGC_Lightning(nfeat=features.size(1), nclass=labels.max().item() + 1, train_loader=train_loader,
-                            test_loader=test_loader)
-    trainer = pl.Trainer(max_epochs=100)
-    start_time = perf_counter()
-    trainer.fit(module)
-    train_time = perf_counter() - start_time
-    trainer.test(module, test_loader)
-    print(f'Training_time:{train_time}')
-else:
-    model, acc_val, train_time = train_regression(model, features[idx_train], labels[idx_train], features[idx_val],
-                                                    labels[idx_val],
-                                                    args.epochs, args.weight_decay, args.lr, args.dropout)
-    acc_test = test_regression(model, features[idx_test], labels[idx_test])
-    print("Validation Accuracy: {:.4f} Test Accuracy: {:.4f}".format(acc_val, acc_test))
-    print("Pre-compute time: {:.4f}s, train time: {:.4f}s, total: {:.4f}s".format(precompute_time, train_time,
-                                                                                    precompute_time + train_time))
+    adj, features, labels, idx_train, idx_val, idx_test = load_citation(args.dataset, args.normalization, args.cuda)
+    model = get_model("SGC", features.size(1), labels.max().item() + 1, args.hidden, args.dropout, args.cuda)
+    features, precompute_time = sgc_precompute(features, adj, args.degree)
+    print("{:.4f}s".format(precompute_time))
+
+    if args.implement == "pytorch-lightning":
+
+        train_dataset = CustomDataset(feature_tensor=features[idx_train], label_tensor=labels[idx_train])
+        train_loader = DataLoader(dataset=train_dataset, batch_size=140)
+
+        test_dataset = CustomDataset(feature_tensor=features[idx_test], label_tensor=labels[idx_test])
+        test_loader = DataLoader(dataset=test_dataset, batch_size=1000, shuffle=False)
+
+        module = SGC_Lightning(nfeat=features.size(1), nclass=labels.max().item() + 1, train_loader=train_loader,
+                                test_loader=test_loader)
+        trainer = pl.Trainer(max_epochs=100)
+        start_time = perf_counter()
+        trainer.fit(module)
+        train_time = perf_counter() - start_time
+        trainer.test(module, test_loader)
+        print(f'Training_time:{train_time}')
+    else:
+        model, acc_val, train_time = train_regression(
+            model, 
+            features[idx_train], 
+            labels[idx_train], 
+            features[idx_val],
+            labels[idx_val],
+            args.epochs, 
+            args.weight_decay, 
+            args.lr, args.dropout
+        )
+        acc_test = test_regression(model, features[idx_test], labels[idx_test])
+        print("Validation Accuracy: {:.4f} Test Accuracy: {:.4f}".format(acc_val, acc_test))
+        print("Pre-compute time: {:.4f}s, train time: {:.4f}s, total: {:.4f}s".format(precompute_time, train_time,
+                                                                                        precompute_time + train_time))

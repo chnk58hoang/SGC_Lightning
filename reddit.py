@@ -1,6 +1,4 @@
-import argparse
 from time import perf_counter
-
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
@@ -78,55 +76,57 @@ def train_regression(model, train_features, train_labels, epochs):
     train_time = perf_counter() - t
     return model, train_time
 
+
 def test_regression(model, test_features, test_labels):
     model.eval()
     return f1(model(test_features), test_labels)
 
 
-# Args
-args = get_reddit_args()
+if __name__ == "__main__":
+    # Args
+    args = get_reddit_args()
 
-if args.implement == "pytorch-lightning":
-    pl.seed_everything(args.seed)
-else:
-    pl.seed_everything(args.seed)
-    set_seed(args.seed, args.cuda)
+    if args.implement == "pytorch-lightning":
+        pl.seed_everything(args.seed)
+    else:
+        pl.seed_everything(args.seed)
+        set_seed(args.seed, args.cuda)
 
-adj, train_adj, features, labels, idx_train, idx_val, idx_test = load_reddit_data(args.normalization, cuda=args.cuda)
-print("Finished data loading.")
+    adj, train_adj, features, labels, idx_train, idx_val, idx_test = load_reddit_data(args.normalization, cuda=args.cuda)
+    print("Finished data loading.")
 
-processed_features, precompute_time = sgc_precompute(features, adj, args.degree)
-if args.inductive:
-    train_features, _ = sgc_precompute(features[idx_train], train_adj, args.degree)
-else:
-    train_features = processed_features[idx_train]
+    processed_features, precompute_time = sgc_precompute(features, adj, args.degree)
+    if args.inductive:
+        train_features, _ = sgc_precompute(features[idx_train], train_adj, args.degree)
+    else:
+        train_features = processed_features[idx_train]
 
-test_features = processed_features[idx_test if args.test else idx_val]
+    test_features = processed_features[idx_test if args.test else idx_val]
 
-if args.implement == "pytorch-lightning":
-    train_dataset = CustomDataset(feature_tensor=train_features, label_tensor=labels[idx_train])
-    train_loader = DataLoader(dataset=train_dataset, batch_size=140)
-    test_dataset = CustomDataset(feature_tensor=test_features, label_tensor=labels[idx_test])
-    test_loader = DataLoader(dataset=test_dataset, batch_size=1000, shuffle=False)
+    if args.implement == "pytorch-lightning":
+        train_dataset = CustomDataset(feature_tensor=train_features, label_tensor=labels[idx_train])
+        train_loader = DataLoader(dataset=train_dataset, batch_size=140)
+        test_dataset = CustomDataset(feature_tensor=test_features, label_tensor=labels[idx_test])
+        test_loader = DataLoader(dataset=test_dataset, batch_size=1000, shuffle=False)
 
-    module = SGC_Lightning(
-        nfeat=features.size(1), 
-        nclass=labels.max().item() + 1, train_loader=train_loader,
-        test_loader=test_loader
-    )
-    trainer = pl.Trainer(max_epochs=100)
-    start_time = perf_counter()
-    trainer.fit(module)
-    train_time = perf_counter() - start_time
-    print(f'Training_time:{train_time}')
-    trainer.test(module, test_loader)
-else:
-    model = SGC(features.size(1), labels.max().item() + 1)
-    model.cuda() if args.cuda else None
-    model, train_time = train_regression(model, train_features, labels[idx_train], args.epochs)
-    test_f1, _ = test_regression(model, test_features, labels[idx_test if args.test else idx_val])
-    print("Total Time: {:.4f}s, {} F1: {:.4f}".format(
-        train_time + precompute_time,
-        "Test" if args.test else "Val",
-        test_f1
-    ))
+        module = SGC_Lightning(
+            nfeat=features.size(1), 
+            nclass=labels.max().item() + 1, train_loader=train_loader,
+            test_loader=test_loader
+        )
+        trainer = pl.Trainer(max_epochs=100)
+        start_time = perf_counter()
+        trainer.fit(module)
+        train_time = perf_counter() - start_time
+        print(f'Training_time:{train_time}')
+        trainer.test(module, test_loader)
+    else:
+        model = SGC(features.size(1), labels.max().item() + 1)
+        model.cuda() if args.cuda else None
+        model, train_time = train_regression(model, train_features, labels[idx_train], args.epochs)
+        test_f1, _ = test_regression(model, test_features, labels[idx_test if args.test else idx_val])
+        print("Total Time: {:.4f}s, {} F1: {:.4f}".format(
+            train_time + precompute_time,
+            "Test" if args.test else "Val",
+            test_f1
+        ))

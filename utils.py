@@ -94,10 +94,16 @@ def load_citation(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     return adj, features, labels, idx_train, idx_val, idx_test
 
 
-def sgc_precompute(features, adj, degree):
+def sgc_precompute(features, adj, degree, alpha=0.05):
+    org_features = features
     t = perf_counter()
     for i in range(degree):
         features = torch.spmm(adj, features)
+   
+    # SELF_ADDED
+    features = (1 - alpha) * features + alpha * org_features
+    # END 
+
     precompute_time = perf_counter() - t
     return features, precompute_time
 

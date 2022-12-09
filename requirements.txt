@@ -1,6 +1,6 @@
 numpy
 scipy
-networkx==1.11
+networkx
 scikit-learn
 torch
 pytorch_lightning
