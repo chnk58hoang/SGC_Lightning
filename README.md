@@ -22,7 +22,7 @@ This repo contains an example implementation of the Simple Graph Convolution
 (SGC) model, described in the ICML2019 paper [Simplifying Graph Convolutional Networks](https://arxiv.org/abs/1902.07153).
 
 SGC removes the nonlinearities and collapes the weight matrices in Graph Convolutional Networks (GCNs) and is essentially a linear model. 
-For an illustration, ![](./model.jpg "SGC")
+For an illustration, ![](./static/model.jpg "SGC")
 
 SGC achieves competitive performance while saving much training time. For reference, on a GTX 1080 Ti,
 

@@ -1,0 +1,15 @@
+# For training & scheduling
+epochs: 100
+lr: 1.0
+tuned: True
+weight_decay: 0.000005
+optimizer: LBFGS
+
+# For dataloader
+dataset: reddit   # choices: cora, citeseer, pubmed, reddit
+inductive: True   # reddit
+test: True        # reddit
+
+# For loading model
+alpha: 0.0
+degree: 2

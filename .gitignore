@@ -1,5 +1,6 @@
-data/*reddit*
+egs/data/*reddit*
 downstream/TextSGC/data
 __pycache__/
 .idea/
 lightning_logs/
+*.egg-info/

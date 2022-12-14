@@ -1,11 +1,13 @@
-import numpy as np
-import scipy.sparse as sp
-import torch
 import sys
+import numpy as np
 import pickle as pkl
-import networkx as nx
-from normalization import fetch_normalization, row_normalize
+import scipy.sparse as sp
 from time import perf_counter
+
+import torch
+import networkx as nx
+
+from sgc.normalization import aug_normalized_adjacency, row_normalize
 
 
 def parse_index_file(filename):
@@ -16,9 +18,8 @@ def parse_index_file(filename):
     return index
 
 
-def preprocess_citation(adj, features, normalization="FirstOrderGCN"):
-    adj_normalizer = fetch_normalization(normalization)
-    adj = adj_normalizer(adj)
+def preprocess_citation(adj, features):
+    adj = aug_normalized_adjacency(adj)
     features = row_normalize(features)
     return adj, features
 
@@ -33,7 +34,7 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     return torch.sparse.FloatTensor(indices, values, shape)
 
 
-def load_citation(dataset_str="cora", normalization="AugNormAdj", cuda=True):
+def load_citation(dataset_str="cora", cuda=True):
     """
     Load Citation Networks Datasets.
     """
@@ -72,7 +73,7 @@ def load_citation(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     idx_train = range(len(y))
     idx_val = range(len(y), len(y) + 500)
 
-    adj, features = preprocess_citation(adj, features, normalization)
+    adj, features = preprocess_citation(adj, features)
 
     # porting to pytorch
     features = torch.FloatTensor(np.array(features.todense())).float()
@@ -94,15 +95,14 @@ def load_citation(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     return adj, features, labels, idx_train, idx_val, idx_test
 
 
-def sgc_precompute(features, adj, degree, alpha=0.05):
+def sgc_precompute(features, adj, degree, alpha=0.1):
     org_features = features
     t = perf_counter()
     for i in range(degree):
         features = torch.spmm(adj, features)
    
-    # SELF_ADDED
+    # Add balance weight
     features = (1 - alpha) * features + alpha * org_features
-    # END 
 
     precompute_time = perf_counter() - t
     return features, precompute_time
@@ -122,8 +122,8 @@ def loadRedditFromNPZ(dataset_dir):
            data['test_index']
 
 
-def load_reddit_data(data_path="data/", normalization="AugNormAdj", cuda=True):
-    adj, features, y_train, y_val, y_test, train_index, val_index, test_index = loadRedditFromNPZ("data/")
+def load_reddit_data(data_path="data/", cuda=True):
+    adj, features, y_train, y_val, y_test, train_index, val_index, test_index = loadRedditFromNPZ(data_path)
     labels = np.zeros(adj.shape[0])
     labels[train_index] = y_train
     labels[val_index] = y_val
@@ -132,10 +132,9 @@ def load_reddit_data(data_path="data/", normalization="AugNormAdj", cuda=True):
     train_adj = adj[train_index, :][:, train_index]
     features = torch.FloatTensor(np.array(features))
     features = (features - features.mean(dim=0)) / features.std(dim=0)
-    adj_normalizer = fetch_normalization(normalization)
-    adj = adj_normalizer(adj)
+    adj = aug_normalized_adjacency(adj)
     adj = sparse_mx_to_torch_sparse_tensor(adj).float()
-    train_adj = adj_normalizer(train_adj)
+    train_adj = aug_normalized_adjacency(train_adj)
     train_adj = sparse_mx_to_torch_sparse_tensor(train_adj).float()
     labels = torch.LongTensor(labels)
     if cuda:
@@ -143,4 +142,5 @@ def load_reddit_data(data_path="data/", normalization="AugNormAdj", cuda=True):
         train_adj = train_adj.cuda()
         features = features.cuda()
         labels = labels.cuda()
+        
     return adj, train_adj, features, labels, train_index, val_index, test_index

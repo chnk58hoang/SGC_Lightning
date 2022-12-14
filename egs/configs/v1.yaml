@@ -1,0 +1,15 @@
+# For training & scheduling
+epochs: 100
+lr: 0.4
+tuned: True
+weight_decay: 0.000005
+optimizer: Adam
+
+# For dataloader
+dataset: pubmed   # choices: cora, citeseer, pubmed, reddit
+inductive: True   # reddit
+test: True        # reddit
+
+# For loading model
+alpha: 0.1
+degree: 2
