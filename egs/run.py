@@ -40,7 +40,6 @@ def run_citation(config, cuda=False, lightning=True):
             print(f"Using tuned weight decay: {config['weight_decay']}")
 
     adj, features, labels, idx_train, idx_val, idx_test = load_citation(config['dataset'], cuda)
-    model = SGC(nfeat=features.size(1), nclass=labels.max().item() + 1)
     features, precompute_time = sgc_precompute(features, adj, config['degree'], config['alpha'])
 
     if lightning:
@@ -66,6 +65,8 @@ def run_citation(config, cuda=False, lightning=True):
         trainer.test(module, test_loader)
         print(f'Training_time:{train_time}')
     else:
+        model = SGC(features.size(1), labels.max().item() + 1)
+        model.cuda() if cuda else None
         model, acc_val, train_time = citation.train_regression(
             model, 
             features[idx_train], 
