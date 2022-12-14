@@ -1,13 +1,21 @@
 from time import perf_counter
 import torch
 import torch.nn.functional as F
-import torch.optim as optim
 
 from sgc.metrics import f1
+from sgc.utils import get_optimizer
 
 
-def train_regression(model, train_features, train_labels, epochs):
-    optimizer = optim.LBFGS(model.parameters(), lr=1)
+def train_regression(
+    model, 
+    train_features, 
+    train_labels, 
+    epochs=100, 
+    optimizer="adam", 
+    weight_decay=5e-6, 
+    lr=0.02,
+):
+    optimizer = get_optimizer(optimizer, model.parameters(), lr, weight_decay)
     model.train()
 
     def closure():

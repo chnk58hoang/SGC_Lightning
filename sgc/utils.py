@@ -10,6 +10,18 @@ import networkx as nx
 from sgc.normalization import aug_normalized_adjacency, row_normalize
 
 
+def get_optimizer(optim, params, lr=0.2, weight_decay=5e-6):
+    if optim.lower() == "adam":
+        optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay) 
+    elif optim.lower() == "sgd":
+        optimizer = torch.optim.SGD(params, lr=lr, weight_decay=weight_decay)
+    elif optim.lower() == "lbfgs":
+        optimizer = torch.optim.LBFGS(params, lr=lr)
+    else:
+        raise ValueError("Unsupported optimizer: {}".format(optim))
+    return optimizer
+
+
 def parse_index_file(filename):
     """Parse index file."""
     index = []

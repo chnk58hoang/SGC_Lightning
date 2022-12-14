@@ -2,8 +2,9 @@ from time import perf_counter
 
 import torch
 import torch.nn.functional as F
-import torch.optim as optim
+
 from sgc.metrics import accuracy
+from sgc.utils import get_optimizer
 
 
 def train_regression(
@@ -13,11 +14,11 @@ def train_regression(
     val_features, 
     val_labels,
     epochs=100, 
+    optimizer="adam",
     weight_decay=5e-6,
     lr=0.02, 
 ):
-    optimizer = optim.Adam(model.parameters(), lr=lr,
-                           weight_decay=weight_decay)
+    optimizer = get_optimizer(optimizer, model.parameters(), lr, weight_decay)
 
     t = perf_counter()
     for epoch in range(epochs):

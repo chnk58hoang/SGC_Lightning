@@ -73,6 +73,7 @@ def run_citation(config, cuda=False, lightning=True):
             features[idx_val],
             labels[idx_val],
             config['epochs'], 
+            config['optimizer'],
             config['weight_decay'], 
             config['lr']
         )
@@ -117,7 +118,15 @@ def run_reddit(config, cuda=False, lightning=True):
     else:
         model = SGC(features.size(1), labels.max().item() + 1)
         model.cuda() if cuda else None
-        model, train_time = reddit.train_regression(model, train_features, labels[idx_train], config['epochs'])
+        model, train_time = reddit.train_regression(
+            model, 
+            train_features, 
+            labels[idx_train], 
+            config['epochs'],
+            config['optimizer'],
+            config['weight_decay'],
+            config['lr'],
+        )
         test_f1, _ = reddit.test_regression(model, test_features, labels[idx_test if config['test'] else idx_val])
         print("Total Time: {:.4f}s, {} F1: {:.4f}".format(
             train_time + precompute_time,

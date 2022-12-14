@@ -1,7 +1,6 @@
 numpy
 scipy
 networkx==1.11
-hyperopt==0.1.1
 scikit-learn
 torch
 pytorch_lightning
