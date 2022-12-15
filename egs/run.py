@@ -15,13 +15,12 @@ from sgc import citation, reddit
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, required=True,
-                        help='Path to yaml config file.')
+    parser.add_argument('config', type=str, help='Path to yaml config file.')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed.')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='Disables CUDA training.')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed.')
     parser.add_argument('--lightning', action='store_true', default=False,
-                        help='execute with PyTorch Lightning version.')
+                        help='Execute with PyTorch Lightning version.')
 
     args, _ = parser.parse_known_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -39,7 +38,9 @@ def run_citation(config, cuda=False, lightning=True):
             config['weight_decay'] = pkl.load(f)['weight_decay']
             print(f"Using tuned weight decay: {config['weight_decay']}")
 
-    adj, features, labels, idx_train, idx_val, idx_test = load_citation(config['dataset'], cuda)
+    adj, features, labels, idx_train, idx_val, idx_test = load_citation(
+        config['data_path'], config['dataset'], config['norm_type'], cuda, config['gamma']
+    )
     features, precompute_time = sgc_precompute(features, adj, config['degree'], config['alpha'])
 
     if lightning:
@@ -62,8 +63,8 @@ def run_citation(config, cuda=False, lightning=True):
         start_time = perf_counter()
         trainer.fit(module)
         train_time = perf_counter() - start_time
-        trainer.test(module, test_loader)
         print(f'Training_time:{train_time}')
+        trainer.test(module, test_loader)
     else:
         model = SGC(features.size(1), labels.max().item() + 1)
         model.cuda() if cuda else None
@@ -85,7 +86,9 @@ def run_citation(config, cuda=False, lightning=True):
 
 
 def run_reddit(config, cuda=False, lightning=True):
-    adj, train_adj, features, labels, idx_train, idx_val, idx_test = load_reddit_data(cuda=cuda)
+    adj, train_adj, features, labels, idx_train, idx_val, idx_test = load_reddit_data(
+        config['data_path'], config['norm_type'], cuda, config['gamma']
+    )
     print("Finished data loading.")
 
     processed_features, precompute_time = sgc_precompute(features, adj, config['degree'], config['alpha'])

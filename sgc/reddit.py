@@ -1,4 +1,5 @@
 from time import perf_counter
+
 import torch
 import torch.nn.functional as F
 

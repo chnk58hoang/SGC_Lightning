@@ -6,9 +6,14 @@ weight_decay: 0.000005
 optimizer: LBFGS
 
 # For dataloader
+data_path: data/
 dataset: reddit   # choices: cora, citeseer, pubmed, reddit
 inductive: True   # reddit
 test: True        # reddit
+
+# For pre-processed feature
+norm_type: AugNormAdj
+gamma: 1.0
 
 # For loading model
 alpha: 0.0
