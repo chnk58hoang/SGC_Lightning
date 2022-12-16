@@ -1,7 +1,14 @@
+<div align="center">
+
 # Simplifying Graph Convolutional Networks
 
-[![made-with-python](https://img.shields.io/badge/Made%20with-Python-red.svg)](#python)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+[![python](https://img.shields.io/badge/-Python_3.7+-blue?logo=python&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![pytorch](https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white)](https://pytorch.org/get-started/locally/)
+[![lightning](https://img.shields.io/badge/-Lightning-792ee5?logo=pytorchlightning&logoColor=white)](https://pytorchlightning.ai/)
+[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/ashleve/lightning-hydra-template#license)
+[![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chnk58hoang/SGC_Lightning/tree/main/notebook/SGC.ipynb)
+
+</div>
 
 ## Overview
 This repo contains an implementation and an improved version of the Simple Graph Convolution
@@ -47,9 +54,9 @@ $$\hat Y_{\textrm{SGC}}^\star = [(1-\alpha)\mathbf S^K \mathbf X + \alpha \mathb
 
 The results are illustrated below:
 
-<p align="center">
+<div align="center">
   <img src="./static/comparison.png" alt="Comparison" width="610"/>
-</p>
+</div>
 
 ## Installation
 You should have Python 3.7 or higher. I highly recommend creating a virual environment like venv or [Conda](https://docs.conda.io/en/latest/miniconda.html). For example, to install with Conda:
