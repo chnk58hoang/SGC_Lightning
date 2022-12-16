@@ -1,0 +1,22 @@
+# For training & scheduling
+epochs: 100
+lr: 0.2
+tuned: True
+weight_decay: 0.000005
+optimizer: Adam
+
+# For dataloader
+data_path: data/
+dataset: cora   # choices: cora, citeseer, pubmed, reddit
+train_batch_size: 140
+test_batch_size: 1000
+test: True        # reddit
+inductive: True   # reddit
+
+# For pre-processed feature
+norm_type: AugNormAdj
+gamma: 1.0
+
+# For loading model
+alpha: 0.1
+degree: 10

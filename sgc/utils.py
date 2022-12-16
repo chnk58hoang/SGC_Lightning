@@ -1,11 +1,25 @@
-import numpy as np
-import scipy.sparse as sp
-import torch
 import sys
+import numpy as np
 import pickle as pkl
-import networkx as nx
-from normalization import fetch_normalization, row_normalize
+import scipy.sparse as sp
 from time import perf_counter
+
+import torch
+import networkx as nx
+
+from sgc.normalization import fetch_normalization, row_normalize
+
+
+def get_optimizer(optim, params, lr=0.2, weight_decay=5e-6):
+    if optim.lower() == "adam":
+        optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay) 
+    elif optim.lower() == "sgd":
+        optimizer = torch.optim.SGD(params, lr=lr, weight_decay=weight_decay)
+    elif optim.lower() == "lbfgs":
+        optimizer = torch.optim.LBFGS(params, lr=lr)
+    else:
+        raise ValueError("Unsupported optimizer: {}".format(optim))
+    return optimizer
 
 
 def parse_index_file(filename):
@@ -16,9 +30,12 @@ def parse_index_file(filename):
     return index
 
 
-def preprocess_citation(adj, features, normalization="FirstOrderGCN"):
+def preprocess_citation(adj, features, normalization="AugNormAdj", gamma=1):
     adj_normalizer = fetch_normalization(normalization)
-    adj = adj_normalizer(adj)
+    if 'Aug' in normalization:
+        adj = adj_normalizer(adj, gamma=gamma)
+    else:
+        adj = adj_normalizer(adj)
     features = row_normalize(features)
     return adj, features
 
@@ -33,21 +50,21 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     return torch.sparse.FloatTensor(indices, values, shape)
 
 
-def load_citation(dataset_str="cora", normalization="AugNormAdj", cuda=True):
+def load_citation(data_path='data/', dataset_str="cora", normalization="AugNormAdj", cuda=True, gamma=1):
     """
     Load Citation Networks Datasets.
     """
     names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
     objects = []
     for i in range(len(names)):
-        with open("data/ind.{}.{}".format(dataset_str.lower(), names[i]), 'rb') as f:
+        with open("{}/ind.{}.{}".format(data_path, dataset_str.lower(), names[i]), 'rb') as f:
             if sys.version_info > (3, 0):
                 objects.append(pkl.load(f, encoding='latin1'))
             else:
                 objects.append(pkl.load(f))
 
     x, y, tx, ty, allx, ally, graph = tuple(objects)
-    test_idx_reorder = parse_index_file("data/ind.{}.test.index".format(dataset_str))
+    test_idx_reorder = parse_index_file(f"{data_path}/ind.{dataset_str}.test.index")
     test_idx_range = np.sort(test_idx_reorder)
 
     if dataset_str == 'citeseer':
@@ -72,7 +89,7 @@ def load_citation(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     idx_train = range(len(y))
     idx_val = range(len(y), len(y) + 500)
 
-    adj, features = preprocess_citation(adj, features, normalization)
+    adj, features = preprocess_citation(adj, features, normalization, gamma=gamma)
 
     # porting to pytorch
     features = torch.FloatTensor(np.array(features.todense())).float()
@@ -94,15 +111,14 @@ def load_citation(dataset_str="cora", normalization="AugNormAdj", cuda=True):
     return adj, features, labels, idx_train, idx_val, idx_test
 
 
-def sgc_precompute(features, adj, degree, alpha=0.05):
+def sgc_precompute(features, adj, degree, alpha=0.1):
     org_features = features
     t = perf_counter()
     for i in range(degree):
         features = torch.spmm(adj, features)
    
-    # SELF_ADDED
+    # Add balance weight
     features = (1 - alpha) * features + alpha * org_features
-    # END 
 
     precompute_time = perf_counter() - t
     return features, precompute_time
@@ -122,8 +138,8 @@ def loadRedditFromNPZ(dataset_dir):
            data['test_index']
 
 
-def load_reddit_data(data_path="data/", normalization="AugNormAdj", cuda=True):
-    adj, features, y_train, y_val, y_test, train_index, val_index, test_index = loadRedditFromNPZ("data/")
+def load_reddit_data(data_path="data/", normalization="AugNormAdj", cuda=True, gamma=1.0):
+    adj, features, y_train, y_val, y_test, train_index, val_index, test_index = loadRedditFromNPZ(data_path)
     labels = np.zeros(adj.shape[0])
     labels[train_index] = y_train
     labels[val_index] = y_val
@@ -133,9 +149,15 @@ def load_reddit_data(data_path="data/", normalization="AugNormAdj", cuda=True):
     features = torch.FloatTensor(np.array(features))
     features = (features - features.mean(dim=0)) / features.std(dim=0)
     adj_normalizer = fetch_normalization(normalization)
-    adj = adj_normalizer(adj)
+    if "Aug" in normalization:
+        adj = adj_normalizer(adj, gamma)
+    else:
+        adj = adj_normalizer(adj)
     adj = sparse_mx_to_torch_sparse_tensor(adj).float()
-    train_adj = adj_normalizer(train_adj)
+    if "Aug" in normalization:
+        train_adj = adj_normalizer(train_adj, gamma)
+    else:
+        train_adj = adj_normalizer(train_adj)
     train_adj = sparse_mx_to_torch_sparse_tensor(train_adj).float()
     labels = torch.LongTensor(labels)
     if cuda:
@@ -143,4 +165,5 @@ def load_reddit_data(data_path="data/", normalization="AugNormAdj", cuda=True):
         train_adj = train_adj.cuda()
         features = features.cuda()
         labels = labels.cuda()
+        
     return adj, train_adj, features, labels, train_index, val_index, test_index
