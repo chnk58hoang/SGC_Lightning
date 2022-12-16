@@ -46,10 +46,10 @@ def run_citation(config, cuda=False, lightning=True):
     if lightning:
 
         train_dataset = CustomDataset(feature_tensor=features[idx_train], label_tensor=labels[idx_train])
-        train_loader = DataLoader(dataset=train_dataset, batch_size=140)
+        train_loader = DataLoader(dataset=train_dataset, batch_size=config['train_batch_size'])
 
         test_dataset = CustomDataset(feature_tensor=features[idx_test], label_tensor=labels[idx_test])
-        test_loader = DataLoader(dataset=test_dataset, batch_size=1000, shuffle=False)
+        test_loader = DataLoader(dataset=test_dataset, batch_size=config['test_batch_size'], shuffle=False)
 
         module = SGC_Lightning(
             nfeat=features.size(1), 
@@ -58,6 +58,7 @@ def run_citation(config, cuda=False, lightning=True):
             test_loader=test_loader,
             optimizer=config['optimizer'],
             lr=config['lr'],
+            weight_decay=config['weight_decay'],
         )
         trainer = pl.Trainer(max_epochs=100)
         start_time = perf_counter()
@@ -101,9 +102,9 @@ def run_reddit(config, cuda=False, lightning=True):
 
     if lightning:
         train_dataset = CustomDataset(feature_tensor=train_features, label_tensor=labels[idx_train])
-        train_loader = DataLoader(dataset=train_dataset, batch_size=140)
+        train_loader = DataLoader(dataset=train_dataset, batch_size=config['train_batch_size'])
         test_dataset = CustomDataset(feature_tensor=test_features, label_tensor=labels[idx_test])
-        test_loader = DataLoader(dataset=test_dataset, batch_size=1000, shuffle=False)
+        test_loader = DataLoader(dataset=test_dataset, batch_size=config['test_batch_size'], shuffle=False)
 
         module = SGC_Lightning(
             nfeat=features.size(1), 

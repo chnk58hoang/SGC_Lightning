@@ -8,6 +8,8 @@ optimizer: LBFGS
 # For dataloader
 data_path: data/
 dataset: reddit   # choices: cora, citeseer, pubmed, reddit
+train_batch_size: 153000
+test_batch_size: 23000
 inductive: True   # reddit
 test: True        # reddit
 

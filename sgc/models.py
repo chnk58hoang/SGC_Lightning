@@ -26,26 +26,25 @@ class SGC_Lightning(pl.LightningModule):
     Assuming the features have been preprocessed with k-step graph propagation.
     """
 
-    def __init__(self, nfeat, nclass, train_loader, test_loader, optimizer="Adam", lr=0.01):
+    def __init__(self, nfeat, nclass, train_loader, test_loader, optimizer="Adam", lr=0.01, weight_decay=5e-6):
         super(SGC_Lightning, self).__init__()
         self.model = SGC(nfeat, nclass)
         self.train_loader = train_loader
         self.test_loader = test_loader
-        self.optimizer = self.get_optimizer(optimizer, lr)
+        self.optimizer = self.get_optimizer(optimizer, lr, weight_decay)
 
     def forward(self, x):
         return self.model(x)
 
-    def get_optimizer(self, optim, lr):
+    def get_optimizer(self, optim, lr, weight_decay=5e-6):
         if optim.lower() == "adam":
-            optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=5e-6)
+            optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
         elif optim.lower() == "sgd":
-            optimizer = torch.optim.SGD(self.parameters(), lr=lr, weight_decay=5e-6)
+            optimizer = torch.optim.SGD(self.parameters(), lr=lr, weight_decay=weight_decay)
         elif optim.lower() == "lbfgs":
             optimizer = torch.optim.LBFGS(self.parameters(), lr=lr)
         else:
             raise ValueError(f"Optimizer {optim} is not supported")
-
         return optimizer
 
     def cross_entropy_loss(self, output, train_labels):

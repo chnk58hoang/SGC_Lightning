@@ -62,6 +62,7 @@ def aug_random_walk(adj, gamma=1):
    d_mat = sp.diags(d_inv)
    return d_mat.dot(adj).tocoo()
 
+
 def random_walk(adj):
    adj = sp.coo_matrix(adj)
    row_sum = np.array(adj.sum(1))
