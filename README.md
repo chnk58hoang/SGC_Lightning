@@ -27,14 +27,29 @@ Reddit  | 233K    | 11.6M   | 602        | 41        | 152K/24K/55K
 
 ## Results
 
+### Plain SGC
+
 SGC achieves competitive performance while saving much training time. For reference, on a Tesla T4 (Google Colab's GPU),
 
 Dataset | Model | Metric | Training Time
 :------:|:------:|:------:|:-----------:
-Cora    | SGC (authors)<br>SGC (*ours*) | Acc: 81.0 %<br>Acc: 81.4 %    | 0.79s<br>0.84s 
-Citeseer| SGC (authors)<br>SGC (*ours*) | Acc: 71.9 %<br>Acc: 72.1 %     | 0.78s<br>0.91s 
-Pubmed  | SGC (authors)<br>SGC (*ours*) | Acc: 78.9 %<br>Acc: 79.0 %     | 0.75s<br>0.78s 
-Reddit  | SGC (authors)<br>SGC (*ours*) | F1:  93.5 %<br>F1: 92.7 %     | 47.3s<br>2367.3s 
+Cora    | SGC (authors)<br>SGC (*ours*) | Acc: 81.0 %<br>Acc: 81.1 %    | 0.79s<br>0.83s 
+Citeseer| SGC (authors)<br>SGC (*ours*) | Acc: 71.9 %<br>Acc: 71.2 %     | 0.78s<br>0.89s 
+Pubmed  | SGC (authors)<br>SGC (*ours*) | Acc: 78.9 %<br>Acc: 79.0 %     | 0.75s<br>0.70s 
+Reddit  | SGC (authors)<br>SGC (*ours*) | F1:  95.0 %<br>F1: 95.0 %     | 1.57s<br>25.31s 
+
+About the run time of our implementation, it seems that PyTorch Lightning is having some [issues](https://github.com/Lightning-AI/lightning/issues/10389) making the training time longer than that of pure PyTorch. We are still underway to work on this problem.
+
+### Improved SGC
+With K increases, the performance of SGC degrades. To address this issue, we propose to use a balanced weight parameter, to balance the pre-processed feature $\mathbf S^K \mathbf X$ and the original feature $\mathbf X$. 
+
+$$\hat Y_{\textrm{SGC}}^\star = [(1-\alpha)\mathbf S^K \mathbf X + \alpha \mathbf X] \Theta$$
+
+The results are illustrated below:
+
+<p align="center">
+  <img src="./static/comparison.png" alt="Comparison" width="610"/>
+</p>
 
 ## Installation
 You should have Python 3.7 or higher. I highly recommend creating a virual environment like venv or [Conda](https://docs.conda.io/en/latest/miniconda.html). For example, to install with Conda:

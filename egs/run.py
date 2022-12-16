@@ -60,7 +60,7 @@ def run_citation(config, cuda=False, lightning=True):
             lr=config['lr'],
             weight_decay=config['weight_decay'],
         )
-        trainer = pl.Trainer(max_epochs=100)
+        trainer = pl.Trainer(max_epochs=config['epochs'])
         start_time = perf_counter()
         trainer.fit(module)
         train_time = perf_counter() - start_time
@@ -114,7 +114,7 @@ def run_reddit(config, cuda=False, lightning=True):
             optimizer=config['optimizer'],
             lr=config['lr'],
         )
-        trainer = pl.Trainer(max_epochs=100)
+        trainer = pl.Trainer(max_epochs=config['epochs'])
         start_time = perf_counter()
         trainer.fit(module)
         train_time = perf_counter() - start_time
