@@ -9,14 +9,14 @@ from sgc.utils import get_optimizer
 
 def train_regression(
     model,
-    train_features, 
+    train_features,
     train_labels,
-    val_features, 
+    val_features,
     val_labels,
-    epochs=100, 
+    epochs=100,
     optimizer="adam",
     weight_decay=5e-6,
-    lr=0.02, 
+    lr=0.02,
 ):
     optimizer = get_optimizer(optimizer, model.parameters(), lr, weight_decay)
 

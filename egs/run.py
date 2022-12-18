@@ -17,9 +17,13 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('config', type=str, help='Path to yaml config file.')
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-    parser.add_argument('--no-cuda', action='store_true', default=False,
+    parser.add_argument('--no-cuda',
+                        action='store_true',
+                        default=False,
                         help='Disables CUDA training.')
-    parser.add_argument('--lightning', action='store_true', default=False,
+    parser.add_argument('--lightning',
+                        action='store_true',
+                        default=False,
                         help='Execute with PyTorch Lightning version.')
 
     args, _ = parser.parse_known_args()
@@ -39,21 +43,27 @@ def run_citation(config, cuda=False, lightning=True):
             print(f"Using tuned weight decay: {config['weight_decay']}")
 
     adj, features, labels, idx_train, idx_val, idx_test = load_citation(
-        config['data_path'], config['dataset'], config['norm_type'], cuda, config['gamma']
-    )
-    features, precompute_time = sgc_precompute(features, adj, config['degree'], config['alpha'])
+        config['data_path'], config['dataset'], config['norm_type'], cuda,
+        config['gamma'])
+    features, precompute_time = sgc_precompute(features, adj, config['degree'],
+                                               config['alpha'])
 
     if lightning:
 
-        train_dataset = CustomDataset(feature_tensor=features[idx_train], label_tensor=labels[idx_train])
-        train_loader = DataLoader(dataset=train_dataset, batch_size=config['train_batch_size'])
+        train_dataset = CustomDataset(feature_tensor=features[idx_train],
+                                      label_tensor=labels[idx_train])
+        train_loader = DataLoader(dataset=train_dataset,
+                                  batch_size=config['train_batch_size'])
 
-        test_dataset = CustomDataset(feature_tensor=features[idx_test], label_tensor=labels[idx_test])
-        test_loader = DataLoader(dataset=test_dataset, batch_size=config['test_batch_size'], shuffle=False)
+        test_dataset = CustomDataset(feature_tensor=features[idx_test],
+                                     label_tensor=labels[idx_test])
+        test_loader = DataLoader(dataset=test_dataset,
+                                 batch_size=config['test_batch_size'],
+                                 shuffle=False)
 
         module = SGC_Lightning(
-            nfeat=features.size(1), 
-            nclass=labels.max().item() + 1, 
+            nfeat=features.size(1),
+            nclass=labels.max().item() + 1,
             train_loader=train_loader,
             test_loader=test_loader,
             optimizer=config['optimizer'],
@@ -70,45 +80,47 @@ def run_citation(config, cuda=False, lightning=True):
         model = SGC(features.size(1), labels.max().item() + 1)
         model.cuda() if cuda else None
         model, acc_val, train_time = citation.train_regression(
-            model, 
-            features[idx_train], 
-            labels[idx_train], 
-            features[idx_val],
-            labels[idx_val],
-            config['epochs'], 
-            config['optimizer'],
-            config['weight_decay'], 
-            config['lr']
-        )
-        acc_test = citation.test_regression(model, features[idx_test], labels[idx_test])
-        print("Validation Accuracy: {:.4f} Test Accuracy: {:.4f}".format(acc_val, acc_test))
-        print("Pre-compute time: {:.4f}s, train time: {:.4f}s, total: {:.4f}s".format(precompute_time, train_time,
-                                                                                        precompute_time + train_time))
+            model, features[idx_train], labels[idx_train], features[idx_val],
+            labels[idx_val], config['epochs'], config['optimizer'],
+            config['weight_decay'], config['lr'])
+        acc_test = citation.test_regression(model, features[idx_test],
+                                            labels[idx_test])
+        print("Validation Accuracy: {:.4f} Test Accuracy: {:.4f}".format(
+            acc_val, acc_test))
+        print("Pre-compute time: {:.4f}s, train time: {:.4f}s, total: {:.4f}s".
+              format(precompute_time, train_time,
+                     precompute_time + train_time))
 
 
 def run_reddit(config, cuda=False, lightning=True):
     adj, train_adj, features, labels, idx_train, idx_val, idx_test = load_reddit_data(
-        config['data_path'], config['norm_type'], cuda, config['gamma']
-    )
+        config['data_path'], config['norm_type'], cuda, config['gamma'])
     print("Finished data loading.")
 
-    processed_features, precompute_time = sgc_precompute(features, adj, config['degree'], config['alpha'])
+    processed_features, precompute_time = sgc_precompute(
+        features, adj, config['degree'], config['alpha'])
     if config['inductive']:
-        train_features, _ = sgc_precompute(features[idx_train], train_adj, config['degree'], config['alpha'])
+        train_features, _ = sgc_precompute(features[idx_train], train_adj,
+                                           config['degree'], config['alpha'])
     else:
         train_features = processed_features[idx_train]
 
     test_features = processed_features[idx_test if config['test'] else idx_val]
 
     if lightning:
-        train_dataset = CustomDataset(feature_tensor=train_features, label_tensor=labels[idx_train])
-        train_loader = DataLoader(dataset=train_dataset, batch_size=config['train_batch_size'])
-        test_dataset = CustomDataset(feature_tensor=test_features, label_tensor=labels[idx_test])
-        test_loader = DataLoader(dataset=test_dataset, batch_size=config['test_batch_size'], shuffle=False)
+        train_dataset = CustomDataset(feature_tensor=train_features,
+                                      label_tensor=labels[idx_train])
+        train_loader = DataLoader(dataset=train_dataset,
+                                  batch_size=config['train_batch_size'])
+        test_dataset = CustomDataset(feature_tensor=test_features,
+                                     label_tensor=labels[idx_test])
+        test_loader = DataLoader(dataset=test_dataset,
+                                 batch_size=config['test_batch_size'],
+                                 shuffle=False)
 
         module = SGC_Lightning(
-            nfeat=features.size(1), 
-            nclass=labels.max().item() + 1, 
+            nfeat=features.size(1),
+            nclass=labels.max().item() + 1,
             train_loader=train_loader,
             test_loader=test_loader,
             optimizer=config['optimizer'],
@@ -124,20 +136,20 @@ def run_reddit(config, cuda=False, lightning=True):
         model = SGC(features.size(1), labels.max().item() + 1)
         model.cuda() if cuda else None
         model, train_time = reddit.train_regression(
-            model, 
-            train_features, 
-            labels[idx_train], 
+            model,
+            train_features,
+            labels[idx_train],
             config['epochs'],
             config['optimizer'],
             config['weight_decay'],
             config['lr'],
         )
-        test_f1, _ = reddit.test_regression(model, test_features, labels[idx_test if config['test'] else idx_val])
+        test_f1, _ = reddit.test_regression(
+            model, test_features,
+            labels[idx_test if config['test'] else idx_val])
         print("Total Time: {:.4f}s, {} F1: {:.4f}".format(
-            train_time + precompute_time,
-            "Test" if config['test'] else "Val",
-            test_f1
-        ))
+            train_time + precompute_time, "Test" if config['test'] else "Val",
+            test_f1))
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ from sgc.normalization import fetch_normalization, row_normalize
 
 def get_optimizer(optim, params, lr=0.2, weight_decay=5e-6):
     if optim.lower() == "adam":
-        optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay) 
+        optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
     elif optim.lower() == "sgd":
         optimizer = torch.optim.SGD(params, lr=lr, weight_decay=weight_decay)
     elif optim.lower() == "lbfgs":
@@ -50,27 +50,35 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     return torch.sparse.FloatTensor(indices, values, shape)
 
 
-def load_citation(data_path='data/', dataset_str="cora", normalization="AugNormAdj", cuda=True, gamma=1):
+def load_citation(data_path='data/',
+                  dataset_str="cora",
+                  normalization="AugNormAdj",
+                  cuda=True,
+                  gamma=1):
     """
     Load Citation Networks Datasets.
     """
     names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
     objects = []
     for i in range(len(names)):
-        with open("{}/ind.{}.{}".format(data_path, dataset_str.lower(), names[i]), 'rb') as f:
+        with open(
+                "{}/ind.{}.{}".format(data_path, dataset_str.lower(),
+                                      names[i]), 'rb') as f:
             if sys.version_info > (3, 0):
                 objects.append(pkl.load(f, encoding='latin1'))
             else:
                 objects.append(pkl.load(f))
 
     x, y, tx, ty, allx, ally, graph = tuple(objects)
-    test_idx_reorder = parse_index_file(f"{data_path}/ind.{dataset_str}.test.index")
+    test_idx_reorder = parse_index_file(
+        f"{data_path}/ind.{dataset_str}.test.index")
     test_idx_range = np.sort(test_idx_reorder)
 
     if dataset_str == 'citeseer':
         # Fix citeseer dataset (there are some isolated nodes in the graph)
         # Find isolated nodes, add them as zero-vecs into the right position
-        test_idx_range_full = range(min(test_idx_reorder), max(test_idx_reorder) + 1)
+        test_idx_range_full = range(min(test_idx_reorder),
+                                    max(test_idx_reorder) + 1)
         tx_extended = sp.lil_matrix((len(test_idx_range_full), x.shape[1]))
         tx_extended[test_idx_range - min(test_idx_range), :] = tx
         tx = tx_extended
@@ -89,7 +97,10 @@ def load_citation(data_path='data/', dataset_str="cora", normalization="AugNormA
     idx_train = range(len(y))
     idx_val = range(len(y), len(y) + 500)
 
-    adj, features = preprocess_citation(adj, features, normalization, gamma=gamma)
+    adj, features = preprocess_citation(adj,
+                                        features,
+                                        normalization,
+                                        gamma=gamma)
 
     # porting to pytorch
     features = torch.FloatTensor(np.array(features.todense())).float()
@@ -116,7 +127,7 @@ def sgc_precompute(features, adj, degree, alpha=0.1):
     t = perf_counter()
     for i in range(degree):
         features = torch.spmm(adj, features)
-   
+
     # Add balance weight
     features = (1 - alpha) * features + alpha * org_features
 
@@ -127,18 +138,21 @@ def sgc_precompute(features, adj, degree, alpha=0.1):
 def set_seed(seed, cuda):
     np.random.seed(seed)
     torch.manual_seed(seed)
-    if cuda: torch.cuda.manual_seed(seed)
+    if cuda:
+        torch.cuda.manual_seed(seed)
 
 
 def loadRedditFromNPZ(dataset_dir):
     adj = sp.load_npz(dataset_dir + "reddit_adj.npz")
     data = np.load(dataset_dir + "reddit.npz")
 
-    return adj, data['feats'], data['y_train'], data['y_val'], data['y_test'], data['train_index'], data['val_index'], \
-           data['test_index']
+    return adj, data['feats'], data['y_train'], data['y_val'], data['y_test'], data['train_index'], data['val_index'], data['test_index']
 
 
-def load_reddit_data(data_path="data/", normalization="AugNormAdj", cuda=True, gamma=1.0):
+def load_reddit_data(data_path="data/",
+                     normalization="AugNormAdj",
+                     cuda=True,
+                     gamma=1.0):
     adj, features, y_train, y_val, y_test, train_index, val_index, test_index = loadRedditFromNPZ(data_path)
     labels = np.zeros(adj.shape[0])
     labels[train_index] = y_train
@@ -165,5 +179,5 @@ def load_reddit_data(data_path="data/", normalization="AugNormAdj", cuda=True, g
         train_adj = train_adj.cuda()
         features = features.cuda()
         labels = labels.cuda()
-        
+
     return adj, train_adj, features, labels, train_index, val_index, test_index

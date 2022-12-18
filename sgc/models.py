@@ -21,12 +21,15 @@ class SGC(nn.Module):
 
 
 class SGC_Lightning(pl.LightningModule):
-    """
-    A Simple PyTorch Implementation of Logistic Regression.
-    Assuming the features have been preprocessed with k-step graph propagation.
-    """
 
-    def __init__(self, nfeat, nclass, train_loader, test_loader, optimizer="Adam", lr=0.01, weight_decay=5e-6):
+    def __init__(self,
+                 nfeat,
+                 nclass,
+                 train_loader,
+                 test_loader,
+                 optimizer="Adam",
+                 lr=0.01,
+                 weight_decay=5e-6):
         super(SGC_Lightning, self).__init__()
         self.model = SGC(nfeat, nclass)
         self.train_loader = train_loader
@@ -38,9 +41,13 @@ class SGC_Lightning(pl.LightningModule):
 
     def get_optimizer(self, optim, lr, weight_decay=5e-6):
         if optim.lower() == "adam":
-            optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
+            optimizer = torch.optim.Adam(self.parameters(),
+                                         lr=lr,
+                                         weight_decay=weight_decay)
         elif optim.lower() == "sgd":
-            optimizer = torch.optim.SGD(self.parameters(), lr=lr, weight_decay=weight_decay)
+            optimizer = torch.optim.SGD(self.parameters(),
+                                        lr=lr,
+                                        weight_decay=weight_decay)
         elif optim.lower() == "lbfgs":
             optimizer = torch.optim.LBFGS(self.parameters(), lr=lr)
         else:
@@ -66,7 +73,7 @@ class SGC_Lightning(pl.LightningModule):
     def test_step(self, test_batch, test_idx):
         test_feature, test_label = test_batch
         output = self.forward(test_feature)
-        test_acc =  metrics.accuracy(output, test_label)
+        test_acc = metrics.accuracy(output, test_label)
         test_f1 = metrics.f1(output, test_label)
         print(f'\nTest Acc: {test_acc}')
         print(f'Test F1: {test_f1}')
