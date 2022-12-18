@@ -25,6 +25,8 @@ Due to space limit, please download reddit dataset from [FastGCN](https://github
 
 Details about the datasets are shown below:
 
+<div align="center">
+
 Dataset | # Nodes | # Edges | # Features | # Classes | Train/Dev/Test Nodes
 :------:|:-------:|:-------:|:----------:|:---------:|:-------------------:
 Cora    | 2,708   | 5,429   | 1,433      | 7         | 140/500/1,000
@@ -32,11 +34,15 @@ Citeseer| 3,327   | 4,732   | 4,732      | 6         | 120/500/1,000
 Pubmed  | 19,717  | 44,338  | 500        | 3         | 60/500/1,000
 Reddit  | 233K    | 11.6M   | 602        | 41        | 152K/24K/55K
 
+</div>
+
 ## Results
 
 ### Plain SGC
 
 SGC achieves competitive performance while saving much training time. For reference, on a Tesla T4 (Google Colab's GPU),
+
+<div align="center">
 
 Dataset | Model | Metric | Training Time
 :------:|:------:|:------:|:-----------:
@@ -44,6 +50,8 @@ Cora    | SGC (authors)<br>SGC (*ours*) | Acc: 81.0 %<br>Acc: 81.1 %    | 0.79s<
 Citeseer| SGC (authors)<br>SGC (*ours*) | Acc: 71.9 %<br>Acc: 71.2 %     | 0.78s<br>0.89s 
 Pubmed  | SGC (authors)<br>SGC (*ours*) | Acc: 78.9 %<br>Acc: 79.0 %     | 0.75s<br>0.70s 
 Reddit  | SGC (authors)<br>SGC (*ours*) | F1:  95.0 %<br>F1: 95.0 %     | 1.57s<br>25.31s 
+
+</div>
 
 About the run time of our implementation, it seems that PyTorch Lightning is having some [issues](https://github.com/Lightning-AI/lightning/issues/10389) making the training time longer than that of pure PyTorch. We are still underway to work on this problem.
 
